@@ -111,14 +111,13 @@ export const AccountView: React.FC<AccountViewProps> = ({
         avatarUrl = publicURLData.publicUrl;
       }
 
-      // 2. Isticmaal upsert si loo hubiyo in magaca iyo sawirka si dhab ah loo kaydiyo ama loo abuuro
+      // 2. Isticmaal upsert adigoo kaydinaya id, full_name, iyo avatar_url oo keliya
       const { error: dbError } = await supabase
         .from('profiles')
         .upsert({
           id: currentUser.id,
           full_name: fullName,
           avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
         });
 
       if (dbError) throw dbError;
