@@ -1,4 +1,14 @@
-// Habaynta iyo kaydinta Magaca iyo Sawirka cusub
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient'; // Hubi halka uu ka yimaado supabase client-kaagu
+
+export function AccountView({ currentUser, onRefreshProfile }: { currentUser: any; onRefreshProfile?: () => Promise<void> }) {
+  const [fullName, setFullName] = useState(currentUser?.full_name || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState(currentUser?.avatar_url || '');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  // Habaynta iyo kaydinta Magaca iyo Sawirka cusub
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdatingProfile(true);
@@ -65,3 +75,55 @@
       setUpdatingProfile(false);
     }
   };
+
+  return (
+    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <h2 className="text-2xl font-bold text-gray-800">Habaynta Koontada (Account Settings)</h2>
+      
+      {/* Sawirka Profaylka */}
+      <div className="flex items-center space-x-4">
+        <img 
+          src={avatarPreview || 'https://via.placeholder.com/150'} 
+          alt="Avatar" 
+          className="w-20 h-20 rounded-full object-cover border"
+        />
+      </div>
+
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Magaca Buuxa:</label>
+          <input 
+            type="text" 
+            value={fullName} 
+            onChange={(e) => setFullName(e.target.value)} 
+            className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Beddel Sawirka Profaylka:</label>
+          <input 
+            type="file" 
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setAvatarFile(e.target.files[0]);
+              }
+            }} 
+            className="mt-1 block w-full"
+          />
+        </div>
+
+        {resetMessage && <p className="text-sm text-green-600">{resetMessage}</p>}
+
+        <button 
+          type="submit" 
+          disabled={updatingProfile}
+          className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {updatingProfile ? 'Waa la kaydinayaa...' : 'Kaydi Isbeddelka'}
+        </button>
+      </form>
+    </div>
+  );
+}
