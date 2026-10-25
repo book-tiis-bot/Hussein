@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient'; // Hubi halka uu ka yimaado supabase client-kaagu
+import { supabase } from '../supabaseClient';
 
 export function AccountView({ currentUser, onRefreshProfile }: { currentUser: any; onRefreshProfile?: () => Promise<void> }) {
   const [fullName, setFullName] = useState(currentUser?.full_name || '');
