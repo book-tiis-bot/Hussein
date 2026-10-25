@@ -1,0 +1,6 @@
+{
+  "name": "BOOK-TIIS",
+  "description": "BOOK-TIIS - Maktabaddaada Dijitaalka ah (Your Digital Library). Iibso, akhriso, oo hel buugaagta tayada sare leh ee Af-Soomaaliga.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
