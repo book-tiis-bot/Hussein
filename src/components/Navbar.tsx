@@ -138,9 +138,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => handleNav('account')}
                     className="flex items-center gap-2 p-1.5 pr-3 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#EAF7EF] text-[#087A43] border border-[#D1EADE] flex items-center justify-center font-bold text-xs">
-                      {currentUser.full_name?.charAt(0) || 'U'}
-                    </div>
+                    {/* Sawirka ama Xarafka ku jira Navbar-ka */}
+                    {currentUser.avatar_url ? (
+                      <img
+                        src={currentUser.avatar_url}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover border border-[#D1EADE]"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[#EAF7EF] text-[#087A43] border border-[#D1EADE] flex items-center justify-center font-bold text-xs">
+                        {currentUser.full_name?.charAt(0) || 'U'}
+                      </div>
+                    )}
                     <div className="text-left">
                       <div className="text-xs font-semibold text-gray-800 line-clamp-1 max-w-[120px]">
                         {currentUser.full_name}
