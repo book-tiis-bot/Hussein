@@ -351,7 +351,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               currentView === 'account' ? 'text-[#087A43] font-bold' : 'text-gray-500'
             }`}
           >
-            <User className="w-5 h-5" />
+            {currentUser?.avatar_url ? (
+              <img
+                src={currentUser.avatar_url}
+                alt="Avatar"
+                className="w-5 h-5 rounded-full object-cover border border-[#087A43]"
+              />
+            ) : (
+              <User className="w-5 h-5" />
+            )}
             <span className="text-[10px]">{currentUser ? 'Koonto' : 'Gal'}</span>
           </button>
         )}
