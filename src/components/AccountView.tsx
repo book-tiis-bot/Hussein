@@ -27,7 +27,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(currentUser?.avatar_url || null);
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
-  // Hubi in preview-ga uu la jaanqaado haddii currentUser isbedelo ama uu sawir cusub yimaado
+  // Hubi in preview-ga iyo magacu ay la jaanqaadaan haddii currentUser isbedelo
   useEffect(() => {
     if (currentUser) {
       setFullName(currentUser.full_name || '');
@@ -95,6 +95,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        
         const { error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, avatarFile, { upsert: true });
@@ -121,13 +122,18 @@ export const AccountView: React.FC<AccountViewProps> = ({
 
       if (dbError) throw dbError;
 
+      // Nadiifi avatarFile si uusan mar labaad u upload-garayn isla faylkeedii hore hadhow
+      setAvatarFile(null);
+
       setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
       
-      // Soo cusboonaysii xogta user-ka ee app-ka dhexdiisa
+      // Soo cusboonaysii xogta user-ka ee app-ka dhexdiisa si Navbar-ka iyo meelaha kale u wada arkaan
       if (onRefreshProfile) {
         await onRefreshProfile();
       }
     } catch (err: any) {
+      console.error("Cilladda Profaylka:", err);
+      alert('Cillad ayaa dhacday: ' + (err.message || JSON.stringify(err)));
       setResetMessage('Cillad ayaa dhacday: ' + (err.message || 'Fadlan dib u day.'));
     } finally {
       setUpdatingProfile(false);
