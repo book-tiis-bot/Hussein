@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, ShieldCheck, Calendar, LogOut, KeyRound, Check, RefreshCw, Camera } from 'lucide-react';
 import { Profile } from '../types';
 import { authService } from '../services/authService';
@@ -21,11 +21,19 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const [loading, setLoading] = useState(false);
   const [syncingRole, setSyncingRole] = useState(false);
   
-  // States-ka cusub ee Wax-ka-beddelka Magaca iyo Sawirka
+  // States-ka Wax-ka-beddelka Magaca iyo Sawirka
   const [fullName, setFullName] = useState(currentUser?.full_name || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(currentUser?.avatar_url || null);
   const [updatingProfile, setUpdatingProfile] = useState(false);
+
+  // Hubi in preview-ga uu la jaanqaado haddii currentUser isbedelo ama uu sawir cusub yimaado
+  useEffect(() => {
+    if (currentUser) {
+      setFullName(currentUser.full_name || '');
+      setAvatarPreview(currentUser.avatar_url || null);
+    }
+  }, [currentUser]);
 
   const isConfigured = isSupabaseConfigured();
 
