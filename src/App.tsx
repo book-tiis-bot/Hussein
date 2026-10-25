@@ -1,380 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
-import { HomeView } from './components/HomeView';
-import { BooksCatalogueView } from './components/BooksCatalogueView';
-import { MyLibraryView } from './components/MyLibraryView';
-import { AdminPanel } from './components/AdminPanel';
-import { AccountView } from './components/AccountView';
-import { WelcomeModal } from './components/WelcomeModal';
-import { AuthModal, AuthTab } from './components/AuthModal';
-import { BookDetailsModal } from './components/BookDetailsModal';
-import { PaymentModal } from './components/PaymentModal';
-import { PdfReaderModal } from './components/PdfReaderModal';
-import { SupabaseGuideModal } from './components/SupabaseGuideModal';
-import { Book, Profile, PaymentRequest } from './types';
-import { authService } from './services/authService';
-import { bookService } from './services/bookService';
-import { orderService } from './services/orderService';
-import { isSupabaseConfigured, supabase } from './lib/supabase';
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { Profile } from '../types';
 
-type ViewMode = 'home' | 'catalogue' | 'library' | 'admin' | 'account';
+interface AccountViewProps {
+  currentUser: Profile | null;
+  onLogout: () => void;
+  onOpenAuth: () => void;
+  onRefreshProfile: () => Promise<void>;
+}
 
-export default function App() {
-  const [currentView, setCurrentView] = useState<ViewMode>('home');
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [books, setBooks] = useState<Book[]>([]);
-  const [booksLoading, setBooksLoading] = useState<boolean>(true);
-  const [booksError, setBooksError] = useState<string | null>(null);
-  const [ownedBookIds, setOwnedBookIds] = useState<Set<string>>(new Set());
+export function AccountView({ currentUser, onLogout, onOpenAuth, onRefreshProfile }: AccountViewProps) {
+  const [fullName, setFullName] = useState(currentUser?.full_name || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState(currentUser?.avatar_url || '');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // Catalogue search/category prefill
-  const [catalogueCategory, setCatalogueCategory] = useState<string>('Dhammaan');
-  const [catalogueSearch, setCatalogueSearch] = useState<string>('');
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    
+    setUpdatingProfile(true);
+    setResetMessage(null);
 
-  // Modals state
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authInitialTab, setAuthInitialTab] = useState<AuthTab>('login');
-  const [supabaseGuideOpen, setSupabaseGuideOpen] = useState(false);
-
-  // Active book interactions
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [buyingBook, setBuyingBook] = useState<Book | null>(null);
-  const [readingBook, setReadingBook] = useState<Book | null>(null);
-
-  const fetchBooks = async () => {
-    setBooksLoading(true);
-    setBooksError(null);
     try {
-      const res = await bookService.getBooks({ onlyPublished: true });
-      if (res.error) {
-        setBooksError(res.error);
-      }
-      setBooks(res.books || []);
-    } catch (e: any) {
-      setBooksError(e?.message || 'Cillad ayaa dhacday soo qaadashada buugaagta');
-    } finally {
-      setBooksLoading(false);
-    }
-  };
+      let avatarUrl = currentUser.avatar_url;
 
-  // Initial load & Supabase Auth listeners
-  useEffect(() => {
-    // Show splash welcome once per session
-    const hasSeenWelcome = sessionStorage.getItem('booktiis_welcome_seen');
-    if (!hasSeenWelcome) {
-      setWelcomeOpen(true);
-      sessionStorage.setItem('booktiis_welcome_seen', 'true');
-    }
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
 
-    loadInitialData();
-
-    // Check for password recovery hash/query on URL
-    const hash = window.location.hash || '';
-    const search = window.location.search || '';
-    if (
-      hash.includes('type=recovery') ||
-      search.includes('type=recovery') ||
-      search.includes('flow=recovery')
-    ) {
-      setAuthInitialTab('update-password');
-      setAuthModalOpen(true);
-    }
-
-    // Subscribe to real-time auth events (Password recovery, sign-in, token refresh)
-    if (isSupabaseConfigured() && supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setAuthInitialTab('update-password');
-          setAuthModalOpen(true);
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          const user = await authService.getCurrentProfile();
-          if (user) {
-            setCurrentUser(user);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-          setOwnedBookIds(new Set());
+        if (uploadError) {
+          throw new Error('Cillad sawirka upload-ka ah: ' + uploadError.message);
         }
-      });
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, []);
+        const { data: publicURLData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
 
-  const loadInitialData = async () => {
-    try {
-      const user = await authService.getCurrentProfile();
-      setCurrentUser(user);
-
-      await fetchBooks();
-
-      if (user) {
-        const orders = await orderService.getUserOrders(user.id);
-        const paidIds = new Set(orders.filter(o => o.status === 'paid').map(o => o.book_id));
-        setOwnedBookIds(paidIds);
-      } else {
-        setOwnedBookIds(new Set());
+        avatarUrl = publicURLData.publicUrl;
       }
-    } catch (e) {
-      console.error('Error in loadInitialData:', e);
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.id);
+
+      if (dbError) throw dbError;
+
+      setAvatarFile(null);
+      setAvatarPreview(avatarUrl || '');
+      setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
+      
+      await onRefreshProfile();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
+    } catch (err: any) {
+      console.error("Cilladda Profaylka:", err);
+      setResetMessage('Cillad ayaa dhacday: ' + (err.message || 'Fadlan dib u day.'));
+    } finally {
+      setUpdatingProfile(false);
     }
   };
 
-  // Re-fetch owned books when user changes
-  useEffect(() => {
-    const refreshUserLibrary = async () => {
-      if (currentUser) {
-        const orders = await orderService.getUserOrders(currentUser.id);
-        const paidIds = new Set(orders.filter(o => o.status === 'paid').map(o => o.book_id));
-        setOwnedBookIds(paidIds);
-      } else {
-        setOwnedBookIds(new Set());
-      }
-    };
-    refreshUserLibrary();
-  }, [currentUser]);
-
-  // Auth Handlers
-  const handleOpenAuth = (tab: AuthTab = 'login') => {
-    setAuthInitialTab(tab);
-    setAuthModalOpen(true);
-  };
-
-  const handleAuthSuccess = (profile: Profile) => {
-    setCurrentUser(profile);
-    setAuthModalOpen(false);
-    if (profile.role === 'admin') {
-      setCurrentView('admin');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleLogout = async () => {
-    await authService.signOut();
-    setCurrentUser(null);
-    setCurrentView('home');
-  };
-
-  const handleRefreshProfile = async () => {
-    const updated = await authService.refreshCurrentProfile();
-    if (updated) {
-      setCurrentUser(updated);
-    }
-  };
-
-  // Navigation handlers
-  const handleNavigateToCatalogue = (category?: string, search?: string) => {
-    if (category) setCatalogueCategory(category);
-    if (search !== undefined) setCatalogueSearch(search);
-    setCurrentView('catalogue');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleNavigateToLibrary = () => {
-    setCurrentView('library');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Payment completed
-  const handlePaymentSubmitted = (paymentReq: PaymentRequest) => {
-    // Refresh user state
-    if (currentUser) {
-      orderService.getUserOrders(currentUser.id).then(orders => {
-        const paidIds = new Set(orders.filter(o => o.status === 'paid').map(o => o.book_id));
-        setOwnedBookIds(paidIds);
-      });
-    }
-  };
+  if (!currentUser) {
+    return (
+      <div className="p-8 max-w-md mx-auto text-center bg-white rounded-xl shadow-md space-y-4 mt-10">
+        <h2 className="text-xl font-bold text-gray-800">Fadlan Soo Geli (Login)</h2>
+        <p className="text-gray-600 text-sm">Waa inaad soo gashaa si aad u aragto oo aad u maamusho koontadaada.</p>
+        <button
+          onClick={onOpenAuth}
+          className="w-full bg-[#087A43] text-white py-2 px-4 rounded-md font-semibold hover:bg-[#066135] transition"
+        >
+          Soo Geli / Is-diiwaangeli
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] flex flex-col font-sans selection:bg-[#EAF7EF] selection:text-[#087A43]">
-      {/* Global Navigation */}
-      <Navbar
-        currentView={currentView}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        currentUser={currentUser}
-        onOpenAuth={handleOpenAuth}
-        onLogout={handleLogout}
-        onOpenSupabaseGuide={() => setSupabaseGuideOpen(true)}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 pb-16 md:pb-0">
-        {currentView === 'home' && (
-          <HomeView
-            books={books}
-            loading={booksLoading}
-            error={booksError}
-            onRefresh={fetchBooks}
-            onSelectBook={(book) => setSelectedBook(book)}
-            onNavigateToCatalogue={handleNavigateToCatalogue}
-            onNavigateToLibrary={handleNavigateToLibrary}
-            onNavigateToAdmin={() => setCurrentView('admin')}
-            ownedBookIds={ownedBookIds}
-          />
-        )}
-
-        {currentView === 'catalogue' && (
-          <BooksCatalogueView
-            onSelectBook={(book) => setSelectedBook(book)}
-            ownedBookIds={ownedBookIds}
-            initialCategory={catalogueCategory}
-            initialSearch={catalogueSearch}
-          />
-        )}
-
-        {currentView === 'library' && (
-          <MyLibraryView
-            currentUser={currentUser}
-            onOpenBookDetails={(book) => setSelectedBook(book)}
-            onReadBook={(book) => setReadingBook(book)}
-            onNavigateToCatalogue={() => handleNavigateToCatalogue()}
-            onOpenAuth={() => handleOpenAuth('login')}
-          />
-        )}
-
-        {currentView === 'admin' && (
-          <AdminPanel
-            currentUser={currentUser}
-            onOpenBook={(book) => setSelectedBook(book)}
-            onBooksUpdated={fetchBooks}
-            onRefreshProfile={handleRefreshProfile}
-          />
-        )}
-
-        {currentView === 'account' && (
-          <AccountView
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            onOpenAuth={() => handleOpenAuth('login')}
-            onRefreshProfile={handleRefreshProfile}
-          />
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-[#D1EADE] py-10 mt-12 text-xs text-gray-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="space-y-1">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <span className="font-black text-[#087A43] text-base tracking-tight">BOOK-TIIS</span>
-              <span className="text-[10px] uppercase font-bold text-gray-400">• Your Digital Library</span>
-            </div>
-            <p className="text-gray-500 text-[11px]">
-              Maktabadda dijitaalka ah ee buugaagta tayada sare leh ee Af-Soomaaliga.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
-            <button
-              onClick={() => {
-                setCurrentView('home');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="hover:text-[#087A43] cursor-pointer"
-            >
-              Bogga Hore
-            </button>
-            <button
-              onClick={() => handleNavigateToCatalogue()}
-              className="hover:text-[#087A43] cursor-pointer"
-            >
-              Buugaag
-            </button>
-            <button
-              onClick={handleNavigateToLibrary}
-              className="hover:text-[#087A43] cursor-pointer"
-            >
-              Maktabaddayda
-            </button>
-            <button
-              onClick={() => setSupabaseGuideOpen(true)}
-              className="text-[#087A43] underline cursor-pointer"
-            >
-              Supabase & SQL Guide
-            </button>
-          </div>
-
-          <div className="text-[11px] text-gray-400">
-            © {new Date().getFullYear()} BOOK-TIIS. Dhammaan xuquuqda way dhowran tahay.
-          </div>
+    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6 mt-6">
+      <h2 className="text-2xl font-bold text-gray-800 border-b pb-3">Habaynta Koontada (Account Settings)</h2>
+      
+      <div className="flex items-center space-x-4">
+        <img 
+          src={avatarPreview || currentUser.avatar_url || 'https://via.placeholder.com/150'} 
+          alt="Avatar" 
+          className="w-20 h-20 rounded-full object-cover border-2 border-[#087A43]"
+        />
+        <div>
+          <h3 className="font-bold text-lg text-gray-900">{currentUser.full_name || 'Isticmaale'}</h3>
+          <p className="text-sm text-gray-500">{currentUser.email}</p>
+          <span className="inline-block mt-1 px-2 py-0.5 text-xs font-semibold bg-green-100 text-[#087A43] rounded-full uppercase">
+            {currentUser.role || 'user'}
+          </span>
         </div>
-      </footer>
+      </div>
 
-      {/* Splash / Welcome Modal */}
-      <WelcomeModal
-        isOpen={welcomeOpen}
-        onClose={() => setWelcomeOpen(false)}
-        onStart={() => {
-          setWelcomeOpen(false);
-          handleNavigateToCatalogue();
-        }}
-        onLogin={() => handleOpenAuth('login')}
-        onRegister={() => handleOpenAuth('register')}
-      />
+      <form onSubmit={handleUpdateProfile} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Magaca Buuxa:</label>
+          <input 
+            type="text" 
+            value={fullName} 
+            onChange={(e) => setFullName(e.target.value)} 
+            className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-[#087A43] focus:outline-none"
+          />
+        </div>
 
-      {/* Auth Modal (Login / Register / Password Reset) */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-        initialTab={authInitialTab}
-      />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Beddel Sawirka Profaylka:</label>
+          <input 
+            type="file" 
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setAvatarFile(e.target.files[0]);
+              }
+            }} 
+            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-[#087A43] hover:file:bg-green-100"
+          />
+        </div>
 
-      {/* Book Details Modal */}
-      <BookDetailsModal
-        book={selectedBook}
-        isOpen={Boolean(selectedBook)}
-        onClose={() => setSelectedBook(null)}
-        currentUser={currentUser}
-        onReadBook={(book) => {
-          setSelectedBook(null);
-          setReadingBook(book);
-        }}
-        onBuyBook={(book) => {
-          setSelectedBook(null);
-          setBuyingBook(book);
-        }}
-        onRequireAuth={() => handleOpenAuth('login')}
-      />
+        {resetMessage && <p className="text-sm font-medium text-green-600">{resetMessage}</p>}
 
-      {/* EVC Plus Payment Modal */}
-      {buyingBook && (
-        <PaymentModal
-          isOpen={Boolean(buyingBook)}
-          onClose={() => setBuyingBook(null)}
-          book={buyingBook}
-          currentUser={currentUser}
-          onPaymentSubmitted={handlePaymentSubmitted}
-          onRequireAuth={() => handleOpenAuth('login')}
-        />
-      )}
+        <button 
+          type="submit" 
+          disabled={updatingProfile}
+          className="w-full bg-[#087A43] text-white py-2 rounded-md font-semibold hover:bg-[#066135] disabled:opacity-50 transition"
+        >
+          {updatingProfile ? 'Waa la kaydinayaa...' : 'Kaydi Isbeddelka'}
+        </button>
+      </form>
 
-      {/* PDF Reader Modal */}
-      {readingBook && (
-        <PdfReaderModal
-          book={readingBook}
-          isOpen={Boolean(readingBook)}
-          onClose={() => {
-            setReadingBook(null);
-            // Reload books / progress
-            loadInitialData();
-          }}
-          currentUser={currentUser}
-        />
-      )}
-
-      {/* Supabase Guide & SQL Modal */}
-      <SupabaseGuideModal
-        isOpen={supabaseGuideOpen}
-        onClose={() => setSupabaseGuideOpen(false)}
-      />
+      <div className="pt-4 border-t flex justify-between items-center">
+        <button
+          onClick={onLogout}
+          className="text-red-600 hover:text-red-800 text-sm font-semibold transition"
+        >
+          Ka Bax (Logout)
+        </button>
+      </div>
     </div>
   );
 }
