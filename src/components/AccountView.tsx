@@ -27,7 +27,7 @@
         avatarUrl = publicURLData.publicUrl;
       }
 
-      // 2. Si toos ah u UPDATE garee miiska profiles adigoo isticmaalaya eq(id) halkii uu upsert noqon lahaa
+      // 2. Si toos ah u UPDATE garee miiska profiles adigoo isticmaalaya eq(id)
       const { error: dbError } = await supabase
         .from('profiles')
         .update({
@@ -42,15 +42,21 @@
       // Nadiifi avatarFile
       setAvatarFile(null);
 
-      // Si toos ah uga beddel preview-ga maxalliga ah si uusan u lumin
+      // Si toos ah uga beddel preview-ga maxalliga ah
       setAvatarPreview(avatarUrl);
 
       setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
       
-      // Soo cusboonaysii xogta user-ka
+      // Soo cusboonaysii xogta user-ka haddii uu jiro function-keeda
       if (onRefreshProfile) {
         await onRefreshProfile();
       }
+
+      // 3. KU DARSTAN CUSUB: Ku qasbi bogga inuu dib u soo cusboonaado si uu sawirku isla markiiba u soo baxo
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+
     } catch (err: any) {
       console.error("Cilladda Profaylka:", err);
       alert('Cillad ayaa dhacday: ' + (err.message || JSON.stringify(err)));
