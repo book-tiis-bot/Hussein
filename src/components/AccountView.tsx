@@ -8,7 +8,6 @@ export function AccountView({ currentUser, onRefreshProfile }: { currentUser: an
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // Habaynta iyo kaydinta Magaca iyo Sawirka cusub
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdatingProfile(true);
@@ -17,7 +16,6 @@ export function AccountView({ currentUser, onRefreshProfile }: { currentUser: an
     try {
       let avatarUrl = currentUser.avatar_url;
 
-      // 1. Haddii uu sawir cusub doortay, ku shub Supabase Storage (avatars bucket)
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
@@ -37,7 +35,6 @@ export function AccountView({ currentUser, onRefreshProfile }: { currentUser: an
         avatarUrl = publicURLData.publicUrl;
       }
 
-      // 2. Si toos ah u UPDATE garee miiska profiles adigoo isticmaalaya eq(id)
       const { error: dbError } = await supabase
         .from('profiles')
         .update({
@@ -49,20 +46,14 @@ export function AccountView({ currentUser, onRefreshProfile }: { currentUser: an
 
       if (dbError) throw dbError;
 
-      // Nadiifi avatarFile
       setAvatarFile(null);
-
-      // Si toos ah uga beddel preview-ga maxalliga ah
       setAvatarPreview(avatarUrl);
-
       setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
       
-      // Soo cusboonaysii xogta user-ka haddii uu jiro function-keeda
       if (onRefreshProfile) {
         await onRefreshProfile();
       }
 
-      // 3. KU DARSTAN CUSUB: Ku qasbi bogga inuu dib u soo cusboonaado si uu sawirku isla markiiba u soo baxo
       setTimeout(() => {
         window.location.reload();
       }, 1200);
@@ -80,7 +71,6 @@ export function AccountView({ currentUser, onRefreshProfile }: { currentUser: an
     <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
       <h2 className="text-2xl font-bold text-gray-800">Habaynta Koontada (Account Settings)</h2>
       
-      {/* Sawirka Profaylka */}
       <div className="flex items-center space-x-4">
         <img 
           src={avatarPreview || 'https://via.placeholder.com/150'} 
