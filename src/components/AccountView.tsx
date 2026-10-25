@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { User, Mail, ShieldCheck, Calendar, LogOut, KeyRound, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { User, Mail, ShieldCheck, Calendar, LogOut, KeyRound, Check, RefreshCw, Camera } from 'lucide-react';
 import { Profile } from '../types';
 import { authService } from '../services/authService';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 interface AccountViewProps {
   currentUser: Profile | null;
@@ -20,6 +20,13 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [syncingRole, setSyncingRole] = useState(false);
+  
+  // States-ka cusub ee Wax-ka-beddelka Magaca iyo Sawirka
+  const [fullName, setFullName] = useState(currentUser?.full_name || '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(currentUser?.avatar_url || null);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+
   const isConfigured = isSupabaseConfigured();
 
   if (!currentUser) {
@@ -67,42 +74,145 @@ export const AccountView: React.FC<AccountViewProps> = ({
     }
   };
 
+  // Habaynta iyo kaydinta Magaca iyo Sawirka cusub
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    setResetMessage(null);
+
+    try {
+      let avatarUrl = currentUser.avatar_url;
+
+      // 1. Haddii uu sawir cusub doortay, ku shub Supabase Storage (avatars bucket)
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split('.').pop();
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatarFile, { upsert: true });
+
+        if (uploadError) {
+          throw new Error('Cillad sawirka upload-ka ah: ' + uploadError.message);
+        }
+
+        const { data: publicURLData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        avatarUrl = publicURLData.publicUrl;
+      }
+
+      // 2. Cusboonaysii miiska profiles ee Database-ka
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          avatar_url: avatarUrl,
+        })
+        .eq('id', currentUser.id);
+
+      if (dbError) throw dbError;
+
+      setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
+      
+      // Soo cusboonaysii xogta user-ka ee app-ka dhexdiisa
+      if (onRefreshProfile) {
+        await onRefreshProfile();
+      }
+    } catch (err: any) {
+      setResetMessage('Cillad ayaa dhacday: ' + (err.message || 'Fadlan dib u day.'));
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Account Profile Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#087A43] to-[#12A85A] text-white flex items-center justify-center text-3xl font-black shadow-lg shadow-[#087A43]/20">
-            {currentUser.full_name?.charAt(0) || 'U'}
-          </div>
-
-          <div className="flex-1 space-y-1">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h2 className="text-2xl font-black text-gray-900">
-                {currentUser.full_name}
-              </h2>
-              {currentUser.role === 'admin' ? (
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                  Maamule (Admin)
-                </span>
+        
+        {/* Foomka Wax-ka-beddelka Magaca & Sawirka */}
+        <form onSubmit={handleUpdateProfile} className="space-y-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+            
+            {/* Sawirka Profaylka / Badalkiisa */}
+            <div className="relative group">
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="w-20 h-20 rounded-2xl object-cover shadow-lg shadow-[#087A43]/20 border-2 border-[#087A43]"
+                />
               ) : (
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#EAF7EF] text-[#087A43] border border-[#D1EADE]">
-                  Macaamil (Customer)
-                </span>
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#087A43] to-[#12A85A] text-white flex items-center justify-center text-3xl font-black shadow-lg shadow-[#087A43]/20">
+                  {fullName?.charAt(0) || currentUser.full_name?.charAt(0) || 'U'}
+                </div>
               )}
+              
+              <label className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera className="w-6 h-6" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const file = e.target.files[0];
+                      setAvatarFile(file);
+                      setAvatarPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
             </div>
 
-            <div className="text-xs text-gray-500 flex items-center justify-center sm:justify-start gap-1.5 pt-1">
-              <Mail className="w-3.5 h-3.5 text-gray-400" />
-              <span>{currentUser.email || 'Email lama diiwaangelin'}</span>
-            </div>
+            <div className="flex-1 space-y-3 w-full">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                {currentUser.role === 'admin' ? (
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                    Maamule (Admin)
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-[#EAF7EF] text-[#087A43] border border-[#D1EADE]">
+                    Macaamil (Customer)
+                  </span>
+                )}
+              </div>
 
-            <div className="text-[11px] text-gray-400 flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Xubin ilaa: {currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : 'Dhawaan'}</span>
+              {/* Meesha lagu qorayo Magaca Cusub */}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 mb-1">Badal Magacaaga</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#087A43]"
+                  placeholder="Geli magacaaga buuxa..."
+                  required
+                />
+              </div>
+
+              <div className="text-xs text-gray-500 flex items-center justify-center sm:justify-start gap-1.5 pt-1">
+                <Mail className="w-3.5 h-3.5 text-gray-400" />
+                <span>{currentUser.email || 'Email lama diiwaangelin'}</span>
+              </div>
+
+              <div className="text-[11px] text-gray-400 flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Xubin ilaa: {currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : 'Dhawaan'}</span>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Badhanka Kaydinta Isbedelka Magaca/Sawirka */}
+          <button
+            type="submit"
+            disabled={updatingProfile}
+            className="w-full py-2.5 bg-[#087A43] hover:bg-[#066336] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+          >
+            {updatingProfile ? 'Waa la kaydinayaa...' : 'Keydso Isbedelka Profaylka'}
+          </button>
+        </form>
 
         {/* Account Details Form */}
         <div className="pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
