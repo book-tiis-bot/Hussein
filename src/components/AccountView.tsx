@@ -111,18 +111,19 @@ export const AccountView: React.FC<AccountViewProps> = ({
         avatarUrl = publicURLData.publicUrl;
       }
 
-      // 2. Cusboonaysii miiska profiles ee Database-ka
+      // 2. Isticmaal upsert si loo hubiyo in magaca iyo sawirka si dhab ah loo kaydiyo ama loo abuuro
       const { error: dbError } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: currentUser.id,
           full_name: fullName,
           avatar_url: avatarUrl,
-        })
-        .eq('id', currentUser.id);
+          updated_at: new Date().toISOString(),
+        });
 
       if (dbError) throw dbError;
 
-      // Nadiifi avatarFile si uusan mar labaad u upload-garayn isla faylkeedii hore hadhow
+      // Nadiifi avatarFile si uusan mar labaad u upload-garayn isla faylkeedii hore
       setAvatarFile(null);
 
       setResetMessage('Xogta profaylka si guul leh ayaa loo kaydiyay! ✅');
