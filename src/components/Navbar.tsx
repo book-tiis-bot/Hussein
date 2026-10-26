@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { BookOpen, User, ShieldCheck, LogIn, LogOut, Database, Menu, X, Library, Compass } from 'lucide-react';
+import { BookOpen, User, ShieldCheck, LogIn, LogOut, Menu, X, Library, Compass } from 'lucide-react';
 import { Profile } from '../types';
-import { isSupabaseConfigured } from '../lib/supabase';
 
 interface NavbarProps {
   currentView: 'home' | 'catalogue' | 'library' | 'admin' | 'account';
@@ -18,10 +17,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenAuth,
   onLogout,
-  onOpenSupabaseGuide,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isConfigured = isSupabaseConfigured();
 
   const handleNav = (view: 'home' | 'catalogue' | 'library' | 'admin' | 'account') => {
     onNavigate(view);
@@ -30,28 +27,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Top Notice Bar */}
-      <div className="bg-[#087A43] text-white text-xs py-1.5 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#12A85A] animate-pulse"></span>
-            <span className="font-medium">
-              BOOK-TIIS: Maktabaddaada Dijitaalka ah ee Buugaagta Af-Soomaaliga
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onOpenSupabaseGuide}
-              className="flex items-center gap-1.5 hover:text-[#EAF7EF] transition-colors cursor-pointer text-xs underline decoration-white/40"
-              title="Fiiri macluumaadka Supabase & SQL"
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>{isConfigured ? 'Supabase: Xidhiidhsan' : 'Supabase: Habka Tijaabada'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#D1EADE] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -138,7 +113,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => handleNav('account')}
                     className="flex items-center gap-2 p-1.5 pr-3 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
                   >
-                    {/* Sawirka ama Xarafka ku jira Navbar-ka */}
                     {currentUser.avatar_url ? (
                       <img
                         src={currentUser.avatar_url}
