@@ -211,4 +211,4 @@ export const BookCatalogueView: React.FC<BookCatalogueViewProps> = ({
           ))}
         </div>
       ) : (
-        <div className="p
+        <div className="p-4">
