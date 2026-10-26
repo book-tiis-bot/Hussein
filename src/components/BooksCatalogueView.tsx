@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Sparkles, BookOpen, RefreshCw, AlertCircle } from 'lucide-react';
-import { Book, BookCategory } from '../types';
+import { Book, BookCategory, Profile } from '../types';
 import { BookCard } from './BookCard';
 import { bookService } from '../services/bookService';
 
-interface BooksCatalogueViewProps {
+interface BookCatalogueViewProps {
+  currentUser?: Profile | null;
   onSelectBook: (book: Book) => void;
   ownedBookIds: Set<string>;
   initialCategory?: string;
@@ -22,7 +23,8 @@ const CATEGORIES = [
   'Caafimaadka'
 ];
 
-export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
+export const BookCatalogueView: React.FC<BookCatalogueViewProps> = ({
+  currentUser,
   onSelectBook,
   ownedBookIds,
   initialCategory,
@@ -51,7 +53,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
         setError(res.error);
       }
 
-      // Client side sorting
       let sorted = [...(res.books || [])];
       if (sortBy === 'newest') {
         sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -78,7 +79,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Title & Search Hero */}
       <div className="text-center max-w-2xl mx-auto space-y-3">
         <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
           Buugaagta Maktabadda <span className="text-[#087A43]">BOOK-TIIS</span>
@@ -87,7 +87,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
           Ka dhex baaro qaybaha kala duwan ee cilmiga, taariikhda, ganacsiga, diinta, iyo suugaanta Soomaaliyeed.
         </p>
 
-        {/* Search input with "Raadi buug…" */}
         <div className="relative pt-2">
           <Search className="w-5 h-5 text-gray-400 absolute left-4 top-5" />
           <input
@@ -108,9 +107,7 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
         </div>
       </div>
 
-      {/* Filter and Category Bar */}
       <div className="space-y-4">
-        {/* Categories Bar */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {CATEGORIES.map((cat) => (
             <button
@@ -127,9 +124,7 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
           ))}
         </div>
 
-        {/* Secondary Filters (Free/Paid & Sorting) */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-          {/* Price filter buttons */}
           <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-gray-200 text-xs self-start">
             <button
               onClick={() => setPriceFilter('all')}
@@ -157,7 +152,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
             </button>
           </div>
 
-          {/* Sort selector & Refresh */}
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <span className="text-xs text-gray-500 font-semibold">Kala hormari:</span>
             <select
@@ -181,7 +175,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
         </div>
       </div>
 
-      {/* Database Error Banner */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start justify-between gap-3 text-xs text-red-800">
           <div className="flex items-start gap-2.5">
@@ -200,7 +193,6 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
         </div>
       )}
 
-      {/* Books Grid */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
@@ -219,24 +211,4 @@ export const BooksCatalogueView: React.FC<BooksCatalogueViewProps> = ({
           ))}
         </div>
       ) : (
-        <div className="p-16 text-center bg-white rounded-3xl border border-gray-100 max-w-md mx-auto space-y-3">
-          <BookOpen className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="text-base font-bold text-gray-900">Buug lama helin</h3>
-          <p className="text-xs text-gray-500">
-            Isku day inaad beddesho erayada aad raadinayso ama aad doorato qayb kale.
-          </p>
-          <button
-            onClick={() => {
-              setSelectedCategory('Dhammaan');
-              setSearchQuery('');
-              setPriceFilter('all');
-            }}
-            className="py-2 px-4 bg-[#EAF7EF] text-[#087A43] rounded-xl text-xs font-bold hover:bg-[#D1EADE] transition-colors cursor-pointer"
-          >
-            Dib u deji miirayaasha
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+        <div className="p
