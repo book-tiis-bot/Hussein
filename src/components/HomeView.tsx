@@ -60,7 +60,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onNavigateToCatalogue(undefined, searchInput.trim());
   };
 
-  // Derive sections directly from live Supabase books
   const featuredBooks = books.filter(b => b.featured || b.price > 0).slice(0, 4);
   const latestBooks = [...books]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -69,15 +68,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">
-      {/* HERO SECTION */}
+      {/* HERO SECTION - Badankii cagaaraanaa waa laga saaray */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#EAF7EF] via-[#EAF7EF]/40 to-white pt-12 pb-16 sm:pt-20 sm:pb-24 border-b border-[#D1EADE]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          {/* Brand Tagline Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#D1EADE] shadow-xs text-xs font-bold text-[#087A43] mb-6">
-            <span className="w-2 h-2 rounded-full bg-[#12A85A] animate-ping" />
-            <span>BOOK-TIIS • Maktabaddaada Dijitaalka ah</span>
-          </div>
-
+          
           {/* Hero Headline */}
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 tracking-tight max-w-4xl mx-auto leading-tight">
             Fur Daaqadda <span className="text-[#087A43]">Aqoonta!</span>
@@ -260,7 +254,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </section>
       )}
 
-      {/* EMPTY BOOKS STATE (IF SUPABASE BOOKS TABLE IS EMPTY) */}
+      {/* EMPTY BOOKS STATE */}
       {!loading && books.length === 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="p-12 sm:p-16 text-center bg-white rounded-3xl border border-[#D1EADE] shadow-xs space-y-4 max-w-xl mx-auto">
