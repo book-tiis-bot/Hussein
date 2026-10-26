@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { Profile } from '../types';
+import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
+import { Profile } from './types';
+import { Navbar } from './components/Navbar';
+import { HomeView } from './components/HomeView';
+import { BookCatalogueView } from './components/BookCatalogueView';
+import { MyLibraryView } from './components/MyLibraryView';
 
-interface AccountViewProps {
+export function AccountView({ currentUser, onLogout, onOpenAuth, onRefreshProfile }: {
   currentUser: Profile | null;
   onLogout: () => void;
   onOpenAuth: () => void;
   onRefreshProfile: () => Promise<void>;
-}
-
-export function AccountView({ currentUser, onLogout, onOpenAuth, onRefreshProfile }: AccountViewProps) {
+}) {
   const [fullName, setFullName] = useState(currentUser?.full_name || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(currentUser?.avatar_url || '');
@@ -152,6 +154,56 @@ export function AccountView({ currentUser, onLogout, onOpenAuth, onRefreshProfil
           Ka Bax (Logout)
         </button>
       </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [currentView, setCurrentView] = useState<'home' | 'catalogue' | 'library' | 'admin' | 'account'>('home');
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+
+  const refreshProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) setCurrentUser(data);
+    }
+  };
+
+  useEffect(() => {
+    refreshProfile();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar
+        currentView={currentView}
+        onNavigate={setCurrentView}
+        currentUser={currentUser}
+        onOpenAuth={() => setCurrentView('account')}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setCurrentView('home');
+        }}
+      />
+      <main className="flex-1 pb-16">
+        {currentView === 'home' && <HomeView onNavigate={setCurrentView} />}
+        {currentView === 'catalogue' && <BookCatalogueView currentUser={currentUser} />}
+        {currentView === 'library' && <MyLibraryView currentUser={currentUser} />}
+        {currentView === 'account' && (
+          <AccountView
+            currentUser={currentUser}
+            onLogout={async () => {
+              await supabase.auth.signOut();
+              setCurrentUser(null);
+              setCurrentView('home');
+            }}
+            onOpenAuth={() => setCurrentView('account')}
+            onRefreshProfile={refreshProfile}
+          />
+        )}
+      </main>
     </div>
   );
 }
