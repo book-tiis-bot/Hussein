@@ -8,6 +8,9 @@ interface SupabaseGuideModalProps {
 }
 
 export const SupabaseGuideModal: React.FC<SupabaseGuideModalProps> = ({ isOpen, onClose }) => {
+  // Laga saaray daaqadda cagaaran gebi ahaanba
+  return null;
+
   const [copiedSql, setCopiedSql] = useState(false);
   const [activeStep, setActiveStep] = useState<number>(1);
   const isConfigured = isSupabaseConfigured();
@@ -236,46 +239,4 @@ export const SupabaseGuideModal: React.FC<SupabaseGuideModalProps> = ({ isOpen, 
                     className="py-1 px-3 bg-[#087A43] hover:bg-[#066336] text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
                   >
                     {copiedSql ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedSql ? 'La koobiyay!' : 'Koobiyey SQL-ka Admin-ka'}</span>
-                  </button>
-                </div>
-
-                <div className="bg-gray-900 text-emerald-400 p-3.5 rounded-xl font-mono text-[11px] leading-relaxed select-all">
-                  -- 1. U beddel doorka admin akoonka Xusenaadan11@gmail.com<br />
-                  INSERT INTO public.profiles (id, full_name, role)<br />
-                  SELECT id, COALESCE(raw_user_meta_data-&gt;&gt;&#39;full_name&#39;, &#39;Maamule&#39;), &#39;admin&#39;<br />
-                  FROM auth.users<br />
-                  WHERE LOWER(email) = &#39;xusenaadan11@gmail.com&#39;<br />
-                  ON CONFLICT (id) DO UPDATE<br />
-                  SET role = &#39;admin&#39;;<br /><br />
-                  -- 2. Xaqiiji in uu admin noqday<br />
-                  SELECT p.id, u.email, p.full_name, p.role<br />
-                  FROM public.profiles p<br />
-                  JOIN auth.users u ON p.id = u.id<br />
-                  WHERE LOWER(u.email) = &#39;xusenaadan11@gmail.com&#39;;
-                </div>
-              </div>
-
-              <p className="text-gray-600 text-[11px]">
-                Marka aad SQL-kan ku shaqaysiiso Supabase SQL Editor, dib ugu noqo BOOK-TIIS oo gal koontadaada ama riix badhanka <strong>"Dib u hubi Doorka Maamulka"</strong>. Badhanka <strong>"Maamulka"</strong> ayaa toos kuugu soo bixi doona!
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-          <span className="text-[11px] text-gray-500">
-            Faylka buuxa ee README.md wuxuu ku yaal xididka mashruuca.
-          </span>
-          <button
-            onClick={onClose}
-            className="py-2 px-5 bg-[#087A43] hover:bg-[#066336] text-white rounded-xl text-xs font-bold cursor-pointer"
-          >
-            Waan Fahmay
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+                    <span>{copiedSql ? 'La koob
