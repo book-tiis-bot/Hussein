@@ -8,7 +8,6 @@ interface NavbarProps {
   currentUser: Profile | null;
   onOpenAuth: (initialTab?: 'login' | 'register' | 'forgot' | 'update-password') => void;
   onLogout: () => void;
-  onOpenSupabaseGuide: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
