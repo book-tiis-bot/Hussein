@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
-
+import { supabase } from '../lib/supabase';
 export function AccountView({ currentUser, onRefreshProfile }: { currentUser: any; onRefreshProfile?: () => Promise<void> }) {
   const [fullName, setFullName] = useState(currentUser?.full_name || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
