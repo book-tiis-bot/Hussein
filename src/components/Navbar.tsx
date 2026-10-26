@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, User, ShieldCheck, LogIn, LogOut, Menu, X, Library, Compass } from 'lucide-react';
-import { Profile } from '../types';
+import { BookOpen, User, ShieldCheck, LogIn, LogOut, Menu, X, Library, Compass } from 'lucide-react';import { Profile } from '../types';
 
 interface NavbarProps {
   currentView: 'home' | 'catalogue' | 'library' | 'admin' | 'account';
